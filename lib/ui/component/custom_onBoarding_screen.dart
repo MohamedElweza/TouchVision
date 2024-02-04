@@ -20,11 +20,10 @@ class CustomOnBoardingScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(height: 30.h,),
-          Image.asset(image),
+          Image.asset(image, height: 310.h, width: 310.w,),
           SizedBox(height: 30.h,),
           Text(subtitle,textAlign: TextAlign.center, style: TextStyle(fontSize: 27.sp, fontWeight: FontWeight.bold, color: ColorStyles.mainColor, fontFamily: 'Tajawal'),),
-          SizedBox(height: 30.h,),
+          SizedBox(height: 10.h,),
 
         ],
       ),

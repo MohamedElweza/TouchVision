@@ -1,11 +1,26 @@
+import 'package:TouchVision/ui/screens/chatgpt/chatgpt.dart';
 import 'package:TouchVision/ui/screens/home/home.dart';
 import 'package:TouchVision/ui/screens/navigation_bar/navigation_bar.dart';
+import 'package:TouchVision/ui/screens/onboarding/onboarding.dart';
 import 'package:TouchVision/ui/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
+
+import 'controllers/ChatGPT/ChatGPT.dart';
+import 'controllers/ChatGPT/Chat_provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => ChatProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ModelsProvider(),
+        ),
+      ],
+      child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -14,7 +29,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
-        designSize:  const Size(390, 844),
+        designSize:  Size(MediaQuery.of(context).size.width, MediaQuery.of(context).size.height),
         builder: (context, child) {
           return MaterialApp(
             builder: (context, child) {
@@ -23,7 +38,7 @@ class MyApp extends StatelessWidget {
                   child: child!);
             },
             debugShowCheckedModeBanner: false,
-            home: const SplashScreen(),
+            home:  const SplashScreen(),
           );
         }
     );

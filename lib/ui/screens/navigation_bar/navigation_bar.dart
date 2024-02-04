@@ -2,9 +2,9 @@ import 'package:TouchVision/ui/utils/styles/color_styles.dart';
 import 'package:avatar_glow/avatar_glow.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:page_transition/page_transition.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'package:flutter_sound/flutter_sound.dart';
+import '../chatgpt/chatgpt.dart';
 import '../home/home.dart';
 import 'custon_paint.dart';
 
@@ -19,17 +19,10 @@ class _NavigatorBarState extends State<NavigatorBar> {
   int currentIndex = 0;
 
   stt.SpeechToText speechToText = stt.SpeechToText();
-  late FlutterSoundPlayer _player;
-  late FlutterSoundRecorder _recorder;
   String text = "";
   bool isListening = false;
+  bool isArabicMode = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _player = FlutterSoundPlayer();
-    _recorder = FlutterSoundRecorder();
-  }
 
   Future<void> _startListening() async {
     if (!isListening) {
@@ -39,23 +32,16 @@ class _NavigatorBarState extends State<NavigatorBar> {
           isListening = true;
         });
 
-        // Get the path to the lib folder
-        final documentsDirectory = await getApplicationDocumentsDirectory();
-        final filePath = '${documentsDirectory.path}/audio.pcm';
-
-        await _recorder.openRecorder();
-        await _recorder.startRecorder(
-          toFile: filePath,
-          codec: Codec.pcm16,
-        );
-
         speechToText.listen(
           onResult: (result) {
             setState(() {
               text = result.recognizedWords;
               print(text);
+              print(isArabicMode);
             });
           },
+          partialResults: true,
+          localeId:isArabicMode? 'ar-SA' : 'en-US',
         );
       }
     }
@@ -63,17 +49,11 @@ class _NavigatorBarState extends State<NavigatorBar> {
 
   Future<void> _stopListening() async {
     if (isListening) {
-      await _recorder.stopRecorder();
-      await _recorder.closeRecorder();
       await speechToText.stop();
       setState(() {
         isListening = false;
       });
 
-      final documentsDirectory = await getApplicationDocumentsDirectory();
-      final filePath = '${documentsDirectory.path}/audio.pcm';
-
-      print('Audio saved at: $filePath');
     }
   }
 
@@ -83,22 +63,14 @@ class _NavigatorBarState extends State<NavigatorBar> {
     });
   }
 
-  @override
-  void dispose() {
-    _player.closePlayer();
-    _recorder.closeRecorder();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final Size size = MediaQuery.of(context).size;
 
     List<Widget> pages = [
-      Home(),
-      // const Courses(isGuest: false, isTeasher: false),
-      // ChatScreen(),
-      // const ProfileScreen(),
+      const Home(),
+      const ChatGPT(),
     ];
 
     return Scaffold(
@@ -125,7 +97,7 @@ class _NavigatorBarState extends State<NavigatorBar> {
                     child: AvatarGlow(
                       endRadius: 75.r,
                       animate: isListening,
-                      duration: const Duration(milliseconds: 2000),
+                      duration: const Duration(milliseconds: 5000),
                       glowColor: ColorStyles.mainColor,
                       repeat: true,
                       repeatPauseDuration: const Duration(milliseconds: 100),
@@ -164,7 +136,12 @@ class _NavigatorBarState extends State<NavigatorBar> {
                         Container(
                           width: size.width * 0.40,
                         ),
-                        Image.asset('assets/images/chatgpt.png', height: 50.h, width: 50.w,),
+                        GestureDetector(
+                          onTap: (){
+                            Navigator.push(context, PageTransition(
+                                child: const ChatGPT(), type: PageTransitionType.bottomToTop,duration: Duration(milliseconds: 700)));
+                          },
+                            child: Image.asset('assets/images/chatgpt.png', height: 50.h, width: 50.w,)),
                       ],
                     ),
                   ),
