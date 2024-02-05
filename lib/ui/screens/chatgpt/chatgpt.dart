@@ -10,6 +10,9 @@ import 'package:provider/provider.dart';
 import '../../../controllers/ChatGPT/ChatGPT.dart';
 import '../../../controllers/ChatGPT/Chat_provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../../../controllers/language_provider.dart';
+import '../../component/language_switch.dart';
+import '../../component/text_to_speech_converter.dart';
 import 'ChatWidget.dart';
 import 'TextWidget.dart';
 
@@ -27,7 +30,6 @@ class _ChatGPTState extends State<ChatGPT> {
   late ScrollController _listScrollController;
   late FocusNode focusNode;
   String text = "";
-  bool isArabicMode = false;
   FlutterTts flutterTts = FlutterTts();
   TextToSpeechConverter ttsConverter = TextToSpeechConverter();
   Completer<void> listeningCompleter = Completer<void>();
@@ -57,7 +59,7 @@ class _ChatGPTState extends State<ChatGPT> {
             });
           },
           partialResults: true,
-          localeId: isArabicMode ? 'en-US' : 'ar-SA',
+          localeId: Provider.of<LanguageProvider>(context).isArabicMode ? 'en-US' : 'ar-SA',
         );
       }
     }
@@ -80,10 +82,14 @@ class _ChatGPTState extends State<ChatGPT> {
     super.dispose();
   }
 
+
   @override
   Widget build(BuildContext context) {
+
     final modelsProvider = Provider.of<ModelsProvider>(context);
     final chatProvider = Provider.of<ChatProvider>(context);
+    bool isArabicMode = Provider.of<LanguageProvider>(context).isArabicMode;
+
     return Scaffold(
       backgroundColor: ColorStyles.mainColor,
       appBar: AppBar(
@@ -91,37 +97,7 @@ class _ChatGPTState extends State<ChatGPT> {
         centerTitle: true,
         elevation: 2,
         actions: [
-          Row(
-            children: [
-              Text(
-                'AR',
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontFamily: 'SplashName',
-                    fontSize: 17.sp,
-                    color: Colors.white),
-              ),
-              SizedBox(width: 5.w),
-              Switch(
-                value: isArabicMode,
-                activeColor: Colors.grey,
-                onChanged: (value) {
-                  setState(() {
-                    isArabicMode = value;
-                  });
-                },
-              ),
-              Text(
-                'EN',
-                style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontFamily: 'SplashName',
-                    fontSize: 17.sp,
-                    color: Colors.white),
-              ),
-              SizedBox(width: 15.w),
-            ],
-          ),
+          languageSwitch(isArabicMode),
         ],
         leading: Padding(
           padding: const EdgeInsets.all(8.0),
@@ -300,16 +276,3 @@ class _ChatGPTState extends State<ChatGPT> {
   }
 }
 
-class TextToSpeechConverter {
-  final FlutterTts flutterTts = FlutterTts();
-
-  Future<void> convertTextToSpeech(String text) async {
-    await flutterTts
-        .setLanguage("en-US"); // Set the language (adjust as needed)
-    await flutterTts.setPitch(1.0); // Set the pitch (adjust as needed)
-    await flutterTts
-        .setSpeechRate(0.5); // Set the speech rate (adjust as needed)
-
-    await flutterTts.speak(text);
-  }
-}

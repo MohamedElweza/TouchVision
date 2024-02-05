@@ -1,15 +1,20 @@
+import 'dart:convert';
 import 'package:TouchVision/ui/utils/styles/color_styles.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:avatar_glow/avatar_glow.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:web_socket_channel/io.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../chatgpt/chatgpt.dart';
 import '../home/home.dart';
 import 'custon_paint.dart';
 
 class NavigatorBar extends StatefulWidget {
-  const NavigatorBar({super.key});
+  const NavigatorBar({Key? key}) : super(key: key);
 
   @override
   _NavigatorBarState createState() => _NavigatorBarState();
@@ -23,6 +28,8 @@ class _NavigatorBarState extends State<NavigatorBar> {
   bool isListening = false;
   bool isArabicMode = false;
 
+  final WebSocketChannel channel =
+  IOWebSocketChannel.connect('ws://192.168.82.18:8000/ws');
 
   Future<void> _startListening() async {
     if (!isListening) {
@@ -32,16 +39,21 @@ class _NavigatorBarState extends State<NavigatorBar> {
           isListening = true;
         });
 
-        speechToText.listen(
+        await speechToText.listen(
           onResult: (result) {
             setState(() {
               text = result.recognizedWords;
               print(text);
-              print(isArabicMode);
             });
+
+            // Check if the result is final
+            if (result.finalResult) {
+              // Perform actions for final result (e.g., sendMessage)
+              sendMessage(text);
+            }
           },
           partialResults: true,
-          localeId:isArabicMode? 'ar-SA' : 'en-US',
+          localeId: isArabicMode ? 'ar-SA' : 'en-US',
         );
       }
     }
@@ -53,7 +65,6 @@ class _NavigatorBarState extends State<NavigatorBar> {
       setState(() {
         isListening = false;
       });
-
     }
   }
 
@@ -63,6 +74,76 @@ class _NavigatorBarState extends State<NavigatorBar> {
     });
   }
 
+  Future<void> sendMessage(String text) async {
+    // Send the text to the WebSocket server
+    channel.sink.add(text);
+  }
+
+  late AudioPlayer audioPlayer;
+
+  void playReceivedAudio(String audioFile) {
+    audioPlayer.play(AssetSource(audioFile));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    channel.stream.listen((message) {
+      // Handle the received message
+      handleWebSocketMessage(message);
+    });
+  }
+
+  // Handle the received message
+  void handleWebSocketMessage(dynamic message) {
+    if (kDebugMode) {
+      print('Received Message: $message');
+    }
+
+    // Assuming the server sends a JSON object
+    try {
+      Map<String, dynamic> data = json.decode(message);
+
+      // Access the specific fields (signal, voice_comment, GPT_response)
+      String signal = data['signal'];
+      String voiceComment = data['voice_comment'];
+      // String gptResponse = data['GPT_response'];
+
+      if (kDebugMode) {
+        print(voiceComment);
+      }
+
+      if (signal == "1") {
+        Navigator.push(
+          context,
+          PageTransition(
+            child: const ChatGPT(),
+            type: PageTransitionType.bottomToTop,
+            duration: const Duration(milliseconds: 700),
+          ),
+        );
+      }
+
+      // Display the information using a SnackBar
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content:
+      //     Text('Signal: $signal\nVoice Comment: $voiceComment\nGPT Response: $gptResponse'),
+      //   ),
+      // );
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error parsing JSON: $e');
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    channel.sink.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -87,9 +168,10 @@ class _NavigatorBarState extends State<NavigatorBar> {
               width: size.width,
               height: 80.h,
               child: Stack(
-                clipBehavior: Clip.none, children: [
+                clipBehavior: Clip.none,
+                children: [
                   CustomPaint(
-                    size: Size(size.width,size.height),
+                    size: Size(size.width, size.height),
                     painter: BNBCustomPainter(),
                   ),
                   Center(
@@ -102,8 +184,17 @@ class _NavigatorBarState extends State<NavigatorBar> {
                       repeat: true,
                       repeatPauseDuration: const Duration(milliseconds: 100),
                       child: GestureDetector(
-                        onTapDown: (details) => _startListening(),
-                        onTapUp: (details) => _stopListening(),
+                        onTapDown: (details) {
+                          _startListening();
+                          // sendMessage(text);
+                        },
+                        onTapUp: (details) async {
+                          await _stopListening();
+                          sendMessage(text);
+                          if (kDebugMode) {
+                            print(text);
+                          }
+                        },
                         child: CircleAvatar(
                           backgroundColor: ColorStyles.red,
                           radius: 35.r,
@@ -125,7 +216,7 @@ class _NavigatorBarState extends State<NavigatorBar> {
                           icon: Icon(
                             Icons.home,
                             color: currentIndex == 0
-                                ?   ColorStyles.mainColor
+                                ? ColorStyles.mainColor
                                 : Colors.grey,
                           ),
                           onPressed: () {
@@ -137,11 +228,22 @@ class _NavigatorBarState extends State<NavigatorBar> {
                           width: size.width * 0.40,
                         ),
                         GestureDetector(
-                          onTap: (){
-                            Navigator.push(context, PageTransition(
-                                child: const ChatGPT(), type: PageTransitionType.bottomToTop,duration: Duration(milliseconds: 700)));
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              PageTransition(
+                                child: const ChatGPT(),
+                                type: PageTransitionType.bottomToTop,
+                                duration: const Duration(milliseconds: 700),
+                              ),
+                            );
                           },
-                            child: Image.asset('assets/images/chatgpt.png', height: 50.h, width: 50.w,)),
+                          child: Image.asset(
+                            'assets/images/chatgpt.png',
+                            height: 50.h,
+                            width: 50.w,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -149,12 +251,8 @@ class _NavigatorBarState extends State<NavigatorBar> {
               ),
             ),
           ),
-          // Display the selected page based on currentIndex
-
         ],
       ),
     );
   }
 }
-
-

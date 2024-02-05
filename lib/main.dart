@@ -1,12 +1,7 @@
-import 'package:TouchVision/ui/screens/chatgpt/chatgpt.dart';
-import 'package:TouchVision/ui/screens/home/home.dart';
-import 'package:TouchVision/ui/screens/navigation_bar/navigation_bar.dart';
-import 'package:TouchVision/ui/screens/onboarding/onboarding.dart';
 import 'package:TouchVision/ui/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-
 import 'controllers/ChatGPT/ChatGPT.dart';
 import 'controllers/ChatGPT/Chat_provider.dart';
 

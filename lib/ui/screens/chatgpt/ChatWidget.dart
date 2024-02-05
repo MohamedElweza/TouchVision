@@ -16,7 +16,6 @@ class ChatWidget extends StatelessWidget {
   final bool shouldAnimate;
   @override
   Widget build(BuildContext context) {
-    print(msg);
     return Column(
       children: [
         Material(
